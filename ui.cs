@@ -6,13 +6,16 @@ using UnityEngine;
 
 public class UI : MonoBehaviour
 {
-    // public TextMeshPro text
+    // a large amount of the code in this script isn't utilised
+    
     public TextMeshProUGUI text;
     private Car _car;
     float[] _wheelSlip;
+
+    
     void Start()
     {
-        _car = GetComponent<Car>();
+        _car = GetComponent<Car>(); // links the UI script to the Car object
         _wheelSlip = new float[_car.wheels.Length];
         // set all to 0
         for (int i = 0; i < _wheelSlip.Length; i++)
@@ -21,7 +24,8 @@ public class UI : MonoBehaviour
         }
     }
     public void SetText(string newText)
-    {
+    {    
+        // if there is no text object, a text object is created
         if (text != null)
         {
             text.text = newText;
@@ -33,7 +37,8 @@ public class UI : MonoBehaviour
     }
 
     void Update()
-    {
+    {    
+        // monitors the value of the _wheelSlip and sets different values to eanble different colours
         String wheelStates = "";
         int at = 0;
         foreach (WheelProperties wheel in _car.wheels)
@@ -55,6 +60,8 @@ public class UI : MonoBehaviour
             at++;
         }
 
+        // redundant code from the tutorial which uses an engine. since my car lacks the engine, this is unnecessary
+        
         // float currentRpm = _car.e.GetRpm();
         // float maxRpm = _car.e.maxRpm;  // Assumes you have this accessible
         // string rpmText = _car.e.GetCurrentGear() + " " + currentRpm.ToString("F0");
@@ -78,19 +85,20 @@ public class UI : MonoBehaviour
         }
         
         // car speeds
-        float rawSpeed = _car.rb.linearVelocity.magnitude;
-        float kmhSpeed = rawSpeed * 3.6f;
+        float rawSpeed = _car.rb.linearVelocity.magnitude; // gets the magnitude of the car's speed
+        float kmhSpeed = rawSpeed * 3.6f; // converts the speed into KMH
         
-        if (GameManager.Instance.useImperial)
+        if (GameManager.Instance.useImperial) // if useImperial is true
         {
-            float mphSpeed = kmhSpeed * 0.62137f;
+            float mphSpeed = kmhSpeed * 0.62137f; // converts the speed from KMH to MPH
             text.text =
-                (mphSpeed).ToString("F0") + " mph";
+                (mphSpeed).ToString("F0") + " mph"; // displays the MPH speed 
         }
         else
         {
             text.text =
-                (kmhSpeed).ToString("F0") + " kph";
+                (kmhSpeed).ToString("F0") + " kph"; // displays the speed in KMH
         }
     }
+
 }
