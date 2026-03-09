@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class ChaseCam : MonoBehaviour
 {
+// This script is not used in the final version of the game as Cinemachine was used instead which made this 
     public Transform targetAnchor;
 
     public Transform carTransform;
@@ -11,6 +12,7 @@ public class ChaseCam : MonoBehaviour
         // basic logic for camera 
         Vector3 curAnchorPosition = carTransform.position;
         Vector3 desiredAnchor = targetAnchor.position;
+        // Lerp stops the camera from exactly following the car and adds
         Vector3 smoothedPos = Vector3.Lerp(transform.position, desiredAnchor,0.1f);
         transform.position = smoothedPos;
         // transform.LookAt(carTransform.position, Vector3.up);
@@ -37,3 +39,4 @@ public class ChaseCam : MonoBehaviour
 //         
 //     }
 }
+
