@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class OrbitCam : MonoBehaviour
 {
+    // This code isn't used in the final version and was abandoned shortly after beginning this as I chose to use Cinemachine for camera implementation
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     void LateUpdate()
@@ -24,3 +25,4 @@ public class OrbitCam : MonoBehaviour
         
     }
 }
+
