@@ -87,27 +87,28 @@ using UnityEngine.PlayerLoop;
 //         return _switchingGears;
 //     }
 // }
+
 [Serializable]
 public class WheelProperties
 {
-    public Vector3 localPosition;
-    public float turnAngle = 0f;
+    public Vector3 localPosition; // the wheels location relative to the car
+    public float turnAngle = 0f; // how much the wheels will turn when steering in degrees
     [HideInInspector] public float lastSuspensionLength = 0f;
     // [HideInInspector] public TrailRenderer skidTrail;
     public float mass = 1.5f; // mass of wheel in kg
     public float size = 0.5f; // size of wheel in m (radius)
     public float engineTorque = 40f; // torque of *wheel* in Nm from engine
-    public float brakeStrength = 0.5f;
+    public float brakeStrength = 0.5f; // the amount of brake force applied
     public bool sliding = false;
     [HideInInspector] public Vector3 localSlipDirection;
     [HideInInspector] public Vector3 worldSlipDirection;
     [HideInInspector] public Vector3 suspensionForceDirection;
     [HideInInspector] public Vector3 wheelWorldPosition;
     [HideInInspector] public float wheelCircumference;
-    [HideInInspector] public float torque = 0.0f;
+    [HideInInspector] public float torque = 0.0f; // the current torque applied to the wheel
     [HideInInspector] public GameObject wheelObject;
     [HideInInspector] public float hitPointForce;
-    [HideInInspector] public Vector3 localVelocity;
+    [HideInInspector] public Vector3 localVelocity; // the wheels velocity locally
     [HideInInspector] public float normalForce;
     [HideInInspector] public float angularVelocity; // rad/sec
     [HideInInspector] public float brake = 0;
@@ -119,24 +120,24 @@ public class WheelProperties
 public class Car : MonoBehaviour
 {
     // public Engine e;
-    public GameObject skidMarkPrefab;
-    public float smoothTurn = 0.03f;
+    // public GameObject skidMarkPrefab;
+    public float smoothTurn = 0.03f; // how sensitive the steering is to the player input. can be adjusted to make it more sensitive or less sensitive
     // public float smoothTurn = GameManager.Instance.steeringSensitivity;
-    float _coefStaticFriction = 1.95f;
-    float _coefKineticFriction = 0.95f;
+    float _coefStaticFriction = 1.95f; // friction coefficient when the wheel is not sliding
+    float _coefKineticFriction = 0.95f; // friction coefficient when the wheel is sliding
     public GameObject wheelPrefab;
-    public WheelProperties[] wheels;
-    public float wheelGripX = 14f;
-    public float wheelGripZ = 14f;
-    public float suspensionForce = 90f; // sprint constant
-    public float dampAmount = 2.5f;
-    public float suspensionForceClamp = 200f;
+    public WheelProperties[] wheels; // array which holds the wheels
+    public float wheelGripX = 14f; // the horizontal grip
+    public float wheelGripZ = 14f; // the forward/backwards grip
+    public float suspensionForce = 90f; // spring constant
+    public float dampAmount = 2.5f; // how much the suspension resists bouncing
+    public float suspensionForceClamp = 200f; // maximum amount of force that can be applied by the suspension
     private Vector2 _input = Vector2.zero; // hori=steer, vert = gas & brake
     public Rigidbody rb;
-    public int braking = 0; // why is this?
+    public int braking = 0; 
     [HideInInspector] public bool forwards = true;
-    [SerializeField] private float maxSpeed = 30f;
-    public AnimationCurve torqueCurve;
+    [SerializeField] private float maxSpeed = 30f; // sets the maxSpeed and scales with engine power
+    public AnimationCurve torqueCurve; // animation curve which controls how power changes with speed. used to prevent acceleration from being linear
     
     
     // Driving Assists
@@ -155,6 +156,8 @@ public class Car : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         if (!rb) rb = gameObject.AddComponent<Rigidbody>();
+
+        // spawns a wheel object for each wheel in the array and positions it correctly
         foreach (var wheel in wheels)
         {
             WheelProperties w = wheel;
@@ -170,6 +173,8 @@ public class Car : MonoBehaviour
             w.tcsReduction = 0f;
             w.slipHistory = 0f;
         }
+
+        // applies a centre of mass offset and inertia
         rb.centerOfMass += comOffest;
         rb.inertiaTensor *= inertia;
     }
@@ -177,15 +182,19 @@ public class Car : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // if a Game Manager object exists, it will update smoothTurn to be whatever is stored in the Game Manager object
         if (GameManager.Instance)
         {
             smoothTurn = GameManager.Instance.steeringSensitivity;
         }
 
+        // smoothens steering
         _input = new Vector2(Mathf.Lerp(_input.x, Input.GetAxisRaw("Horizontal"), smoothTurn), Input.GetAxisRaw("Vertical"));
+
+        // checks if spacebar is held for braking
         braking = Input.GetKey(KeyCode.Space) ? 1 : 0;
 
-        if (Input.GetKeyDown(KeyCode.R)) // resets the car if flipped
+        if (Input.GetKeyDown(KeyCode.R)) // resets the car upright (useful if the car has flipped)
         {
             transform.rotation = Quaternion.identity;
             transform.position += Vector3.up * 2f;
@@ -193,8 +202,12 @@ public class Car : MonoBehaviour
             rb.angularVelocity = Vector3.zero;
         }
 
+
+        // more smoothing of user input, reduces steering at higher speeds
         userInput.x = Mathf.Lerp(userInput.x, Input.GetAxisRaw("Horizontal") / (1 + rb.linearVelocity.magnitude / 28f), 0.2f);
         userInput.y = Mathf.Lerp(userInput.y, Input.GetAxisRaw("Vertical"), 0.2f);
+
+        // checks if player is trying to reverse while moving forward. If below a certain speed, reversing will be allowed
         float forwardVelocity = Vector3.Dot(transform.forward, rb.linearVelocity);
         bool isBraking = Input.GetKey(KeyCode.S) && forwardVelocity > 0.5f;
     
@@ -220,23 +233,24 @@ public class Car : MonoBehaviour
                 w.input.y = 0f;
         }
         
-        Debug.Log($"SmoothTurn: {smoothTurn}");
+        // Debug.Log($"SmoothTurn: {smoothTurn}");
     }
 
     void FixedUpdate()
     {
-        rb.AddForce(-transform.up * rb.linearVelocity.magnitude * downforce);
+        rb.AddForce(-transform.up * rb.linearVelocity.magnitude * downforce); // applies downforce to the car
         float averageWheelAngularVelocity = 0f;
         float currentSpeed = rb.linearVelocity.magnitude;
+
+        // calculates the amount of engine power to apply based on the current speed and max speed
         float speedRatio = Mathf.Clamp01(currentSpeed / maxSpeed);
         float powerMultiplier = Mathf.Max(0f,torqueCurve.Evaluate(speedRatio));
         float finalPower = powerMultiplier;
+
+        // checks how the car is moving (forwards or backwards)
         float forwardVelocity = Vector3.Dot(transform.forward, rb.linearVelocity);
         forwards = forwardVelocity > -0.5f;
 
-        
-        
-        
         foreach (var w in wheels)
         {
             Transform wheelObj = w.wheelObject.transform; // what is "steered"
@@ -248,27 +262,32 @@ public class Car : MonoBehaviour
                 Time.fixedDeltaTime * 100f
             );
 
+            // if player is reversing, reduce the power applied
             if (w.input.y < 0)
             {
                 finalPower *= 0.55f;
             }
-            
+
+            // gets the wheel's current world position and velocity
             w.wheelWorldPosition = transform.TransformPoint(w.localPosition);
             Vector3 velocityAtWheel = rb.GetPointVelocity(w.wheelWorldPosition);
             w.localVelocity = wheelObj.InverseTransformDirection(velocityAtWheel);
 
-            // w.torque = w.engineTorque * w.input.y * e.GetCurrentPower(this);
-            w.torque = w.engineTorque * w.input.y * finalPower;
+            w.torque = w.engineTorque * w.input.y * finalPower; // calculates the torque applied to wheel
+            
             float inertia = w.mass * w.size * w.size / 2f;
             float lateralFriction = -wheelGripX * w.localVelocity.x;
             float longitudinalFriction = -wheelGripZ * (w.localVelocity.z - w.angularVelocity);
 
+            // based on torque and the amount of friction, updates how fast the wheel spins
             w.angularVelocity += (w.torque - longitudinalFriction * w.size) / inertia * Time.fixedDeltaTime;
-            w.angularVelocity *= 1 - braking * w.brakeStrength * Time.fixedDeltaTime;
+            // if braking, it slows down the speed of the wheels spinning
+            w.angularVelocity *= 1 - braking * w.brakeStrength * Time.fixedDeltaTime; 
 
             Vector3 totalLocalForce = new Vector3(lateralFriction, 0f, longitudinalFriction) * w.normalForce * _coefStaticFriction * Time.fixedDeltaTime;
             float currentMaxFrictionForce = w.normalForce * _coefStaticFriction;
-            
+
+            // if the total force exceeds the maximum grip of the wheel, the wheel is now sliding
             w.sliding = totalLocalForce.magnitude > currentMaxFrictionForce;
 
             totalLocalForce = Vector3.ClampMagnitude(totalLocalForce, currentMaxFrictionForce);
@@ -276,7 +295,7 @@ public class Car : MonoBehaviour
             
             Vector3 totalWorldForce = wheelObj.TransformDirection(totalLocalForce);
             w.worldSlipDirection = totalWorldForce;
-            
+
             RaycastHit hit;
             if (Physics.Raycast(w.wheelWorldPosition, -transform.up, out hit, w.size * 2f))
             {
@@ -292,11 +311,11 @@ public class Car : MonoBehaviour
                 rb.AddForceAtPosition(springDir + totalWorldForce, hit.point);
                 
                 w.lastSuspensionLength = hit.distance;
-                wheelObj.position = hit.point + transform.up * w.size;
+                wheelObj.position = hit.point + transform.up * w.size; // moves the wheel visual object to sit on the ground surface
             }
             else
             {
-                wheelObj.position = w.wheelWorldPosition - transform.up * w.size;
+                wheelObj.position = w.wheelWorldPosition - transform.up * w.size; // if no ground detected, wheel will move to its lowest hanging position
             }
 
             averageWheelAngularVelocity += w.angularVelocity;
@@ -307,9 +326,10 @@ public class Car : MonoBehaviour
             
             
         }
-        averageWheelAngularVelocity /= wheels.Length;
+        averageWheelAngularVelocity /= wheels.Length; // calculates the average speed across all the wheels of the car
         // Debug.Log(averageWheelAngularVelocity);
         
         // e.SetRpm(averageWheelAngularVelocity);
     }
 }
+
